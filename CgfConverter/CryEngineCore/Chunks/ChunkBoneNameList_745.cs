@@ -7,7 +7,7 @@ internal sealed class ChunkBoneNameList_745 : ChunkBoneNameList
 {
     public override void Read(BinaryReader b)
     {
-        base.Read(b);       
+        base.ReadNoHeader(b);
 
         var sizeOfList = b.ReadInt32();
         var upperOffset = Offset + Size;

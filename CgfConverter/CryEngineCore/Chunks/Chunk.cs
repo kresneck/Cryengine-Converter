@@ -182,6 +182,15 @@ public abstract class Chunk : IBinaryChunk
         swappableReader.IsBigEndian = IsBigEndian;
     }
 
+    public virtual void ReadNoHeader(BinaryReader reader)
+    {
+        if (reader is null)
+            throw new ArgumentNullException(nameof(reader));
+
+        reader.BaseStream.Seek(_header.Offset, SeekOrigin.Begin);
+
+    }
+
     /// <summary>Gets a link to the SkinningInfo model.</summary>
     public SkinningInfo GetSkinningInfo()
     {
