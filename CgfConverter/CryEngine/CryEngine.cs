@@ -258,11 +258,20 @@ public partial class CryEngine
                 .SelectMany(c => c.MeshSubsets);
 
             var maxChildren = Models
-                .SelectMany(x => x.ChunkMap.Values.OfType<ChunkMtlName>())
-                .Select(x => x.NumChildren)
-                .Max();
+                ?.SelectMany(x => x.ChunkMap.Values.OfType<ChunkMtlName>())
+                ?.Select(x => x.NumChildren)
+                ?.Max() ?? 0;
 
-            var maxMats = (uint)meshSubsets.Select(x => x.MatID).Max() + 1;
+            var maxMats = maxChildren;
+
+            if (meshSubsets.Any())
+            {
+                maxMats = (uint)meshSubsets.Select(x => x.MatID).Max() + 1;
+            } else
+            {
+                Utilities.Log(LogLevelEnum.Warning, "No mesh subsets identified");
+            }
+
             // set maxMats to the max of maxMats and maxChildren
             maxMats = Math.Max(maxMats, maxChildren);
 
