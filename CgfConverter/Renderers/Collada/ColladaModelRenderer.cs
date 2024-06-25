@@ -455,42 +455,44 @@ public class ColladaModelRenderer : IRenderer
             }
         }
 
-        if (diffuseFound == false)
+        if (diffuseFound == false && !String.IsNullOrEmpty(subMat.Diffuse))
         {
             phong.Diffuse.Color = new ColladaColor
             {
-                Value_As_String = subMat.Diffuse ?? string.Empty,
-                sID = "diffuse"
+                sID = "diffuse",
+                Value_As_String = subMat.Diffuse + " " + subMat.Opacity
             };
         }
         if (specularFound == false)
         {
             phong.Specular.Color = new ColladaColor { sID = "specular" };
             if (subMat.Specular != null)
-                phong.Specular.Color.Value_As_String = subMat.Specular ?? string.Empty;
+                phong.Specular.Color.Value_As_String = subMat.Specular + " " + subMat.Opacity;
             else
-                phong.Specular.Color.Value_As_String = "1 1 1";
+                phong.Specular.Color.Value_As_String = "1 1 1 " + subMat.Opacity;
         }
 
-        phong.Emission = new ColladaFXCommonColorOrTextureType
+        if (subMat.Emissive != null)
         {
-            Color = new ColladaColor
+            phong.Emission = new ColladaFXCommonColorOrTextureType
             {
-                sID = "emission",
-                Value_As_String = subMat.Emissive ?? string.Empty
-            }
-        };
+                Color = new ColladaColor
+                {
+                    sID = "emission",
+                    Value_As_String = subMat.Emissive + " " + subMat.Opacity
+                }
+            };
+        }
         phong.Shininess = new ColladaFXCommonFloatOrParamType { Float = new ColladaSIDFloat() };
         phong.Shininess.Float.sID = "shininess";
         phong.Shininess.Float.Value = (float)subMat.Shininess;
         phong.Index_Of_Refraction = new ColladaFXCommonFloatOrParamType { Float = new ColladaSIDFloat() };
 
-        phong.Transparent = new ColladaFXCommonColorOrTextureType
+        phong.Transparency = new ColladaFXCommonFloatOrParamType
         {
-            Color = new ColladaColor(),
-            Opaque = new ColladaFXOpaqueChannel()
+            Float = new ColladaSIDFloat()
         };
-        phong.Transparent.Color.Value_As_String = (1 - double.Parse((subMat.Opacity == string.Empty ? "1" : subMat.Opacity) ?? "1")).ToString();  // Subtract from 1 for proper value.
+        phong.Transparency.Float.Value = (float)(1 - double.Parse((subMat.Opacity == string.Empty ? "1" : subMat.Opacity) ?? "1"));  // Subtract from 1 for proper value.
 
         #endregion
 
@@ -545,7 +547,7 @@ public class ColladaModelRenderer : IRenderer
                 continue;
             }
 
-            if (nodeChunk._model.ChunkMap[nodeChunk.ObjectNodeID].ChunkType == ChunkType.Mesh)
+            if (nodeChunk._model.ChunkMap[nodeChunk.ObjectNodeID].ChunkType == ChunkType.Mesh && !nodeChunk.Name.StartsWith("$") && !nodeChunk.Name.StartsWith("LOD"))
             {
                 // Create materials collection for this node. Index of collection in meshSubSets determines which mat to use.
                 //CreateMaterialsFromNodeChunk(nodeChunk); // now being created from the crydata Materials object
@@ -1505,7 +1507,7 @@ public class ColladaModelRenderer : IRenderer
         List<ColladaNode> childNodes = new();
         foreach (ChunkNode childNodeChunk in nodeChunk.AllChildNodes)
         {
-            if (_args.IsNodeNameExcluded(childNodeChunk.Name))
+            if (_args.IsNodeNameExcluded(childNodeChunk.Name) || childNodeChunk.Name.StartsWith("$") || childNodeChunk.Name.StartsWith("LOD"))
             {
                 Log(LogLevelEnum.Debug, $"Excluding child node {childNodeChunk.Name}");
                 continue;

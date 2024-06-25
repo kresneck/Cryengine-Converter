@@ -18,7 +18,7 @@ public class RealFileSystem : IPackFileSystem
         if (!Directory.Exists(rootPath))
             throw new FileNotFoundException();
 
-        _rootPath = FileHandlingExtensions.CombineAndNormalizePath(rootPath) + "\\";
+        _rootPath = FileHandlingExtensions.CombineAndNormalizePath(rootPath) + "/";
     }
 
     public Stream GetStream(string path)
@@ -45,14 +45,15 @@ public class RealFileSystem : IPackFileSystem
         // remainingPattern always contains fully qualified path, but in lowercase.
         var remainingPatterns = new List<string>
         {
-            Regex.Replace(FileHandlingExtensions.CombineAndNormalizePath(_rootPath, pattern), "[/\\\\]+", "\\")
+            _rootPath + FileHandlingExtensions.CombineAndNormalizePath(pattern)
         };
-        var testedPatterns = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        var foundPaths = new List<string>();
+
+        var testedPatterns = new HashSet<string>();
+        var foundPaths = new HashSet<string>();
 
         while (remainingPatterns.Any())
         {
-            pattern = remainingPatterns[^1].ToLowerInvariant();
+            pattern = remainingPatterns[^1];
             remainingPatterns.RemoveAt(remainingPatterns.Count - 1);
             if (testedPatterns.Contains(pattern))
                 continue;
@@ -66,7 +67,7 @@ public class RealFileSystem : IPackFileSystem
 
             for (var i = 0; i < pattern.Length;)
             {
-                var next = pattern.IndexOf('\\', i + 1);
+                var next = pattern.IndexOfAny(new[] { '\\', '/' }, i + 1);
                 if (next == -1)
                     next = pattern.Length;
 
@@ -78,7 +79,7 @@ public class RealFileSystem : IPackFileSystem
                     var suffix = pattern[pos..next].TrimStart('*');
 
                     var remainingPattern = next == pattern.Length ? string.Empty : pattern[(next + 1)..];
-                    if (!remainingPattern.Contains('\\'))
+                    if (remainingPattern.IndexOfAny(new[] { '\\', '/' }) < 0)
                     {
                         try
                         {
@@ -96,7 +97,7 @@ public class RealFileSystem : IPackFileSystem
                     {
                         remainingPatterns.AddRange(
                             Directory.GetDirectories(searchBase, $"{prefix}*")
-                                .Select(x => Path.Join(x, remainingPattern)));
+                                .Select(x => Path.Combine(searchBase, x, remainingPattern)));
                     }
                     catch (Exception)
                     {
@@ -105,15 +106,17 @@ public class RealFileSystem : IPackFileSystem
                     break;
                 }
 
-                if (-1 != pattern.IndexOfAny(new[] {'?', '*'}, i, next - i))
+                var wildcardIndex = pattern.IndexOfAny(new[] { '?', '*' }, i, next - i);
+
+                if (-1 != wildcardIndex)
                 {
                     var searchBase = pattern[..i];
                     var remainingPattern = pattern[next..];
 
                     try {
                         remainingPatterns.AddRange(
-                            Directory.GetFileSystemEntries(searchBase, pattern[i..next])
-                                .Select(x => Path.Join(searchBase, x) + remainingPattern));
+                            Directory.GetFileSystemEntries(searchBase, pattern[wildcardIndex..next])
+                            .Select(x => Path.Combine(searchBase, x) + remainingPattern));
                     }
                     catch (Exception)
                     {
@@ -133,7 +136,7 @@ public class RealFileSystem : IPackFileSystem
     {
         try
         {
-            return File.ReadAllBytes(Path.Join(_rootPath, path));
+            return File.ReadAllBytes(Path.Combine(_rootPath, path));
         }
         catch (FileNotFoundException)
         {

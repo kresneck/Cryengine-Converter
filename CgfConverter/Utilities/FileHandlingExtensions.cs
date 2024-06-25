@@ -82,6 +82,6 @@ public static class FileHandlingExtensions
             i++;
         }
 
-        return string.Join('\\', parts);
+        return string.Join('/', parts);
     }
 }

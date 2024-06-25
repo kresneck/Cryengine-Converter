@@ -59,9 +59,21 @@ public class Program
                 inputFile);
 
             if (CryEngine.SupportsFile(inputFile))
-                ExportSingleModel(inputFile);
+                try {
+                    ExportSingleModel(inputFile);
+                } catch (Exception ex)
+                {
+                    Utilities.Log(LogLevelEnum.Error, "An error occurred processing {0} - {1}", inputFile, ex);
+                }
             else if (CryTerrain.SupportsFile(inputFile))
-                ExportSingleTerrain(inputFile);
+                try
+                {
+                    ExportSingleTerrain(inputFile);
+                }
+                catch (Exception ex)
+                {
+                    Utilities.Log(LogLevelEnum.Error, "An error occurred processing {0} - {1}", inputFile, ex);
+                }
         }
 
         Log.I("Finished.");
